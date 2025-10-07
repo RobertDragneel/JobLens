@@ -4,7 +4,8 @@ import numpy as np
 
 dataset = pd.read_csv('jobs_with_skills.csv')
 
-#need to either remove all listed with zero skills or just clean 
+#remove all listed with zero skills
 dataset['skills'] = dataset['skills'].where(pd.notnull(dataset['skills']), None)
+dataset = dataset[dataset['skill_count'] != 0]
 
-print(dataset.loc[1,'skills'])
+print((dataset['skill_count'] == 0).sum()) #testing
