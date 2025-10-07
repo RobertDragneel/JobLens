@@ -19,11 +19,12 @@ dataset['skill_list'] = dataset['data_dict'].apply(lambda x: list(x.keys()))
 
 skills_search = ['Java', 'CSS'] #temp #replace with user input for skills
 
-#query for input skills
+#query list in row for input skills
 def has_match(data_values, search_values_set):
     return any(val in search_values_set for val in data_values)
 
 search_values_set = set(skills_search)
+#filters dataset to search values
 matching_rows = dataset[dataset['skill_list'].apply(lambda x: has_match(x, search_values_set))]
 
 print(matching_rows) #temp output
