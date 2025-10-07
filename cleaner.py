@@ -11,15 +11,13 @@ dataset = dataset[dataset['skill_count'] != 0]
 
 #print((dataset['skill_count'] == 0).sum()) #testing
 
-
-
 #convert json object of skills to list
 dataset['data_dict'] = dataset['skill_counts_json'].apply(json.loads)
-dataset['skill_list'] = dataset['data_dict'].apply(lambda x: list(x.keys()))
+dataset['skill_list'] = dataset['data_dict'].apply(lambda x: [k.lower() for k in x.keys()])
 
 #user input for skill search
 skills_input = input("Enter skills to search for (comma-separated): ")
-skills_search = [skill.strip() for skill in skills_input.split(',')]
+skills_search = [skill.strip().lower for skill in skills_input.split(',')]
 
 #query list in row for input skills
 def has_match(data_values, search_values_set):
