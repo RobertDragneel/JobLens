@@ -12,7 +12,7 @@ dataset = dataset[dataset['skill_count'] != 0]
 #print((dataset['skill_count'] == 0).sum()) #testing
 
 #convert json object of skills to list
-dataset['data_dict'] = dataset['skill_counts_json'].apply(json.loads)
+dataset['data_dict'] = dataset['skill_counts_jsoJn'].apply(json.loads)
 dataset['skill_list'] = dataset['data_dict'].apply(lambda x: [k.lower() for k in x.keys()])
 
 #user input for skill search
