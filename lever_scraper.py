@@ -1,17 +1,15 @@
-# JSON EX. FROM GH API https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=true
-
-import requests 
+import requests
 import re
-import pandas as pd
 import json
+import pandas as pd
 from bs4 import BeautifulSoup
 
-# manually hand picked slugs through gh ex: ("https://boards-api.greenhouse.io/v1/boards/{SLUG}/jobs?content=true")
-companies = ["trase","redcellpartners","stripe","airbnb","anaplan","asana",
-             "canonical","circleci","cloudflare","lyft","remotecom","robinhood",
-             "scaleai","sezzle","spacex","databricks","reddit","coinbase","instacart",
-             "figma","vercel","dropbox","radiant","divergent","riotgames","riotgamesup",
-             "abnormal","vast","freeformfuturecorp","shein","parallel","crunchyroll", "google",
+
+# https://app.theirstack.com/search/companies/new?query=N4IgjgrgpgTgniAXKADgQwOZSQBgDQgA2AlgLbEAuSATAKwED2MAJrAPoBGCiA2qKwGcAxkgoxoBAGbEohZkhBCGAO2mtlQ7AF88-KMNHioUmXIUArBhwEgdeg4jESQ02fMQhlEUm0vXbALoEHIQQMGxKpOjKcGzMaBRohs7EGqGsbBQMiYRsMPoQhBQ2jkYEkdGxFFBCABbKDIQMGLECoRhsTEg8RFAAbrAgATogaBBZbAJQaDB1yVBaQA
+
+# lever company slugs pulled from https://theirstack.com/en/technology/lever
+companies = ["spotify","welocalize","gopuff","plexus","xero","farfetch","shieldai","matchgroup",
+                "google",
 "apple",
 "microsoft",
 "amazon",
@@ -848,7 +846,8 @@ companies = ["trase","redcellpartners","stripe","airbnb","anaplan","asana",
 "regus",
 "pacificworkplaces",
 "liquidspace"
-]
+                ]
+
 skills = [
     # Languages
     "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "Go", "Rust", "Ruby", "PHP", "Swift",
@@ -893,12 +892,17 @@ DEGREE_PATTERNS = {
     "PhD":       r"\b(ph\.?d\.?|phd|dphil)\b",
 }
 
+def clean(html):
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    return " ".join(soup.get_text(" ", strip=True).split())
+
 # both extract functions use regex to find skills and or degrees
 def extract_skills(text):
     return [s for s in skills
             # (?<!\w): negative lookbehind | (?!\w): negative lookahead | re.I
             if re.search(rf"(?<!\w){re.escape(s)}(?!\w)", text, re.I)]
-
 
 def extract_degrees(text: str) -> str:
     found = []
@@ -909,39 +913,35 @@ def extract_degrees(text: str) -> str:
 
 rows = []
 
-for c in companies:
-    url = f"https://boards-api.greenhouse.io/v1/boards/{c}/jobs?content=true"
-    try:
-        data = requests.get(url, timeout=10).json() # get response object as JSON
+for company in companies:
+    url = f"https://api.lever.co/v0/postings/{company}?mode=json"
+    r = requests.get(url)
+    if not r.ok:
+        print(f"Failed {company}")
+        continue
 
-        for job in data.get("jobs", []):
+    for job in r.json():
+        title = job.get("text", "")
+        loc = (job.get("categories") or {}).get("location", "")
+        desc = (job.get("descriptionPlain") or "") or clean(job.get("description", ""))
 
-            title = job.get("title", "")
-            loc = (job.get("location", {}) or {}).get("name", "")
-
-            # bs4 searches for content field which contains html, parses it, then removes elements and trailing/leading whitespace
-            desc = BeautifulSoup(job.get("content", ""), "html.parser").get_text(" ", strip=True)
-
-            skills_found = extract_skills(desc)
-            degrees_found = extract_degrees(desc)
-
-            skills_json = json.dumps({s: 1 for s in skills_found}) if skills_found else ""  # empty if none
+        skills_found = extract_skills(desc)
+        degrees_found = extract_degrees(desc)
 
 
-            rows.append({
-                "company": c,
-                "title": title,
-                "location": loc,
-                "skills": skills_found,
-                "degree": degrees_found,
-                "url": job.get("absolute_url", ""),
-                "skills_json": skills_json
-            })
-        print(f"{c}: {len(rows)} jobs total")
-    except Exception as e:
-        print(f"{c}: {e}")
+        skills_str = ", ".join(skills_found)
+        skills_json = json.dumps({s: 1 for s in skills_found}) if skills_found else ""  # empty if none
+
+        rows.append({
+            "company": company,
+            "title": title,
+            "location": loc,
+            "skills": skills_str,
+            "degree": degrees_found,  # optional: you can add degree regex here
+            "url": job.get("hostedUrl", ""),
+            "skills_json": skills_json
+        })
 
 # pandas lib to convert list to csv
-pd.DataFrame(rows).to_csv("gh_jobs.csv", index=False)
+pd.DataFrame(rows).to_csv("lever_jobs.csv", index=False)
 print("Done!")
-
