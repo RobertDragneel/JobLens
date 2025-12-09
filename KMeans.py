@@ -64,8 +64,3 @@ for cluster_num in range(best_k):
 
 dataset['cluster_label'] = dataset['cluster'].map(cluster_labels)
 
-#assign jobs to clusters
-for cluster_num in range(best_k):
-    cluster_skills = X[dataset['cluster']==cluster_num].sum(axis=0)
-    top_skills_idx = np.argsort(cluster_skills)[::-1][:10]  
-    top_skills = [mlb.classes_[i] for i in top_skills_idx]
